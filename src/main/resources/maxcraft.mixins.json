@@ -1,0 +1,36 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "dev.maxcraft.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BlazeBurnerBlockEntityMixin",
+    "CrafterInventoryAccess",
+    "CrafterUnpackingHandlerMixin",
+    "FactoryPanelBehaviourMixin",
+    "FactoryPanelBlockEntityMixin",
+    "FactoryPanelPickupMixin",
+    "FactoryPanelPlacementMixin",
+    "FactoryPanelConnectionHandlerMixin",
+    "FactoryPanelInputLimitMixin",
+    "GaugeDropMixin",
+    "PackageItemMixin",
+    "PackageOrderWithCraftsMixin",
+    "PackageRepackageHelperMixin",
+    "PackagerBlockEntityMixin",
+    "PackagerBlockMixin",
+    "RepackagerBlockEntityMixin",
+    "ShapedRecipePatternAccess",
+    "StockTickerBlockMixin"
+  ],
+  "client": [
+    "client.FactoryPanelModelMixin",
+    "client.FactoryPanelScreenMixin",
+    "client.PackagerRendererMixin",
+    "client.ScreenAccessor",
+    "client.StockKeeperRequestScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

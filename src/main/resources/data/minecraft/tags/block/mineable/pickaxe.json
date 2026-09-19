@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "maxcraft:large_packager",
+    "maxcraft:large_repackager",
+    "maxcraft:extended_stock_ticker"
+  ]
+}

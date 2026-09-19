@@ -1,0 +1,44 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+issueTrackerURL = "https://github.com/example/maxcraft/issues"
+
+[[mixins]]
+config = "maxcraft.mixins.json"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''${mod_description}'''
+
+[[dependencies.${mod_id}]]
+    modId = "neoforge"
+    type = "required"
+    versionRange = "${neo_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+[[dependencies.${mod_id}]]
+    modId = "minecraft"
+    type = "required"
+    versionRange = "${minecraft_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+# 机械动力 / Create
+[[dependencies.${mod_id}]]
+    modId = "create"
+    type = "required"
+    versionRange = "${create_version_range}"
+    ordering = "AFTER"
+    side = "BOTH"
+
+# 机械动力：赛博护目镜 / Create: Cyber Goggles (installed in run/mods)
+[[dependencies.${mod_id}]]
+    modId = "create_cyber_goggles"
+    type = "optional"
+    versionRange = "[8.0.0,)"
+    ordering = "AFTER"
+    side = "CLIENT"

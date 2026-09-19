@@ -1,0 +1,11 @@
+{
+  "parent": "create:block/factory_gauge/item",
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 1
+      },
+      "model": "maxcraft:item/extended_factory_gauge"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "block.maxcraft.large_packager": "Large Packager",
+  "block.maxcraft.large_repackager": "Large Re-Packager",
+  "block.maxcraft.extended_stock_ticker": "Extended Stock Ticker",
+  "item.maxcraft.extended_factory_gauge": "Extended Factory Gauge",
+  "item.maxcraft.large_package_component": "Large Package Component",
+  "item.maxcraft.large_package_component_incomplete": "Incomplete Large Package Component",
+  "maxcraft.gui.factory_panel.grid_size": "Crafting Grid Size",
+  "maxcraft.gui.factory_panel.crafting_input": "Crafting Ingredient",
+  "maxcraft.gui.factory_panel.crafting_input_tip": "Part of the %s pattern this gauge is set to work with.",
+  "maxcraft.gui.factory_panel.page": "Input page %s/%s"
+}

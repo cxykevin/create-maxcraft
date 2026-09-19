@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "create:repackager"
+    },
+    {
+      "item": "maxcraft:large_package_component"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "maxcraft:large_repackager"
+  }
+}

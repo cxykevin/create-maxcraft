@@ -1,0 +1,7 @@
+{
+	"parent": "maxcraft:block/extended_gauge/panel",
+	"textures": {
+		"0": "maxcraft:block/extended_gauge_panel_packager_mode",
+		"particle": "maxcraft:block/extended_gauge_panel_packager_mode"
+	}
+}

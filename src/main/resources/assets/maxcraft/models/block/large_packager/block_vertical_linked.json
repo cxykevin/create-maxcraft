@@ -1,0 +1,6 @@
+{
+	"parent": "maxcraft:block/large_packager/block_vertical",
+	"textures": {
+		"5": "maxcraft:block/large_packager_vertical_linked"
+	}
+}

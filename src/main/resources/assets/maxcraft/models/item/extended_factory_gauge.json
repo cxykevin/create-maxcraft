@@ -1,0 +1,7 @@
+{
+  "parent": "create:block/factory_gauge/item",
+  "textures": {
+    "0": "maxcraft:block/extended_gauge_panel",
+    "particle": "maxcraft:block/extended_gauge_panel"
+  }
+}

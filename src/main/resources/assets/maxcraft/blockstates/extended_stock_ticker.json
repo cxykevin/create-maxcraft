@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "maxcraft:block/extended_stock_ticker",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "maxcraft:block/extended_stock_ticker"
+    },
+    "facing=south": {
+      "model": "maxcraft:block/extended_stock_ticker",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "maxcraft:block/extended_stock_ticker",
+      "y": 270
+    }
+  }
+}

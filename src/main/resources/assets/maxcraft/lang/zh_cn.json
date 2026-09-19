@@ -1,0 +1,12 @@
+{
+  "block.maxcraft.large_packager": "大型打包机",
+  "block.maxcraft.large_repackager": "大型理包机",
+  "block.maxcraft.extended_stock_ticker": "扩展仓储发报机",
+  "item.maxcraft.extended_factory_gauge": "扩展工厂仪表",
+  "item.maxcraft.large_package_component": "大型包裹构件",
+  "item.maxcraft.large_package_component_incomplete": "大型包裹构件（半成品）",
+  "maxcraft.gui.factory_panel.grid_size": "合成网格大小",
+  "maxcraft.gui.factory_panel.crafting_input": "合成材料",
+  "maxcraft.gui.factory_panel.crafting_input_tip": "该仪表所使用 %s 配方的一部分。",
+  "maxcraft.gui.factory_panel.page": "输入页 %s/%s"
+}

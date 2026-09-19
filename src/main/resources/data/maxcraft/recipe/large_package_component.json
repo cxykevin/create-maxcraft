@@ -1,0 +1,46 @@
+{
+  "type": "create:sequenced_assembly",
+  "ingredient": {
+    "item": "create:sturdy_sheet"
+  },
+  "loops": 1,
+  "sequence": [
+    {
+      "type": "create:deploying",
+      "ingredients": [
+        {
+          "item": "maxcraft:large_package_component_incomplete"
+        },
+        {
+          "item": "create:precision_mechanism"
+        }
+      ],
+      "results": [
+        {
+          "id": "maxcraft:large_package_component_incomplete"
+        }
+      ]
+    },
+    {
+      "type": "create:pressing",
+      "ingredients": [
+        {
+          "item": "maxcraft:large_package_component_incomplete"
+        }
+      ],
+      "results": [
+        {
+          "id": "maxcraft:large_package_component_incomplete"
+        }
+      ]
+    }
+  ],
+  "transitional_item": {
+    "id": "maxcraft:large_package_component_incomplete"
+  },
+  "results": [
+    {
+      "id": "maxcraft:large_package_component"
+    }
+  ]
+}

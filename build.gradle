@@ -1,0 +1,153 @@
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.78'
+}
+
+version = mod_version
+group = mod_group_id
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'Create maven'
+        url = 'https://maven.createmod.net/'
+    }
+    maven {
+        name = 'Registrate maven'
+        url = 'https://maven.gegy.dev/releases/'
+    }
+}
+
+base {
+    archivesName = mod_id
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+neoForge {
+    version = neo_version
+
+    parchment {
+        mappingsVersion = parchment_mapping_version
+        minecraftVersion = parchment_minecraft_version
+    }
+
+    runs {
+        client {
+            client()
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        }
+        server {
+            server()
+            programArgument '--nogui'
+            // The server gets its own game directory: run/mods holds client-only mods
+            // (Sodium, JEI, ...) that a dedicated server must not load.
+            gameDirectory.set(file('run-server'))
+            systemProperty 'neoforge.enabledGameTestNamespaces', mod_id
+        }
+        data {
+            data()
+            programArguments.addAll '--mod', mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        }
+
+        configureEach {
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+    }
+
+    mods {
+        "$mod_id" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+configurations {
+    runtimeClasspath.extendsFrom localRuntime
+    // Create's POM pulls a pile of optional integrations (JEI, FTB, JourneyMap, Curios,
+    // CC:Tweaked, Architectury) into the runtime graph. The mod being developed depends on
+    // Create only, so nothing unrelated is allowed onto the compile or runtime classpath.
+    // JEI / Just Enough Characters / Sodium / Lithium exist purely as jars in run/mods.
+    configureEach {
+        exclude group: 'dev.ftb.mods'
+        exclude group: 'mezz.jei'
+        exclude group: 'maven.modrinth'
+        exclude group: 'info.journeymap'
+        exclude group: 'top.theillusivec4.curios'
+        exclude group: 'cc.tweaked'
+        exclude group: 'dev.architectury'
+    }
+}
+
+dependencies {
+    // 机械动力 / Create - the API this project is developed against. Being an
+    // 'implementation' dependency it is on the compile classpath *and* loaded as a mod
+    // by NeoForge's classpath locator in every dev run.
+    implementation("com.simibubi.create:create-1.21.1:${create_version}:slim") {
+        // Create's POM asks for an unpublished CI build of Registrate; the public
+        // 1.21.1 build is declared below instead.
+        exclude group: 'com.tterrag.registrate', module: 'Registrate'
+    }
+    implementation "com.tterrag.registrate:Registrate:MC1.21.1-1.3.0+24"
+    implementation "dev.engine-room.flywheel:flywheel-neoforge-1.21.1:1.0.6"
+    // Create's SmartBlockEntity implements Ponder's VirtualBlockEntity, so Ponder has to be on the compile
+    // classpath before anything can subclass a Create block entity. Create's POM already puts it on the
+    // runtime classpath; this only makes it visible to javac.
+    compileOnly "net.createmod.ponder:ponder-neoforge:1.0.81+mc1.21.1"
+    // dev.engine-room.vanillin arrives transitively from Create's POM.
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = 'UTF-8'
+    it.options.release = 21
+}
+
+tasks.withType(ProcessResources).configureEach {
+    def replaceProperties = [
+        minecraft_version      : minecraft_version,
+        minecraft_version_range: minecraft_version_range,
+        neo_version            : neo_version,
+        neo_version_range      : neo_version_range,
+        loader_version_range   : loader_version_range,
+        mod_id                 : mod_id,
+        mod_name               : mod_name,
+        mod_license            : mod_license,
+        mod_version            : mod_version,
+        mod_authors            : mod_authors,
+        mod_description        : mod_description,
+        create_version_range   : create_version_range,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/repo"
+        }
+    }
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}

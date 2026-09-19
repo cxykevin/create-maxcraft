@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "create:factory_gauge"
+    },
+    {
+      "item": "maxcraft:large_package_component"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "create:factory_gauge",
+    "components": {
+      "minecraft:custom_model_data": 1,
+      "maxcraft:gauge_grid_sizes": {
+        "Size": 5
+      }
+    }
+  }
+}
