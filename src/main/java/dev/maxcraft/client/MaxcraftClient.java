@@ -12,6 +12,7 @@ import dev.maxcraft.Maxcraft;
 import dev.maxcraft.registry.MaxcraftBlockEntityTypes;
 import dev.maxcraft.registry.MaxcraftBlocks;
 
+import net.createmod.ponder.foundation.PonderIndex;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ItemBlockRenderTypes;
 import net.minecraft.client.renderer.RenderType;
@@ -92,6 +93,18 @@ public final class MaxcraftClient {
         // Flywheel fills its partial models in from this same event, so look at them once the dust has settled.
         Minecraft.getInstance()
             .execute(MaxcraftPanelModels::verifyBaked);
+    }
+
+    /**
+     * Hands this mod's machines over to Create's Ponder scenes, so that hovering one and holding the ponder key plays
+     * the scene of the machine it is based on.
+     *
+     * <p>Ponder reads its plugins once the game has finished loading, and whichever mod adds one first does not
+     * matter - they are kept sorted - so this only has to happen before that, which client setup is.
+     */
+    @SubscribeEvent
+    public static void registerPonder(FMLClientSetupEvent event) {
+        PonderIndex.addPlugin(new MaxcraftPonderPlugin());
     }
 
     @SubscribeEvent
