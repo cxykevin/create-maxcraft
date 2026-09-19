@@ -9,4 +9,22 @@
   "maxcraft.gui.factory_panel.crafting_input": "合成材料",
   "maxcraft.gui.factory_panel.crafting_input_tip": "该仪表所使用 %s 配方的一部分。",
   "maxcraft.gui.factory_panel.page": "输入页 %s/%s"
+,
+  "maxcraft.tooltip.hold_shift": "按住 Shift 查看详情",
+  "maxcraft.tooltip.large_package_component.1": "大型包裹构件。",
+  "maxcraft.tooltip.large_package_component.2": "用它右键打包机、理包机或仓储发报机，可以把那台机器原地升级成大型版本，物流网络、设置和里面的东西都会保留。",
+  "maxcraft.tooltip.large_package_component.3": "与工厂仪表合成可以得到扩展工厂仪表；也可以直接右键仪表面板，加大那一格的合成网格。",
+  "maxcraft.tooltip.large_packager.1": "一次可以把 27 组物品装进同一个包裹（数量可在服务端配置里调整）。",
+  "maxcraft.tooltip.large_packager.2": "装出来的仍然是普通包裹，蛙港、邮筒、拆包机与理包机都照常处理。",
+  "maxcraft.tooltip.large_repackager.1": "等整个订单的货物全部到齐之后，把它们合并成一个包裹。",
+  "maxcraft.tooltip.large_repackager.2": "没有订单信息的包裹（例如红石请求）仍然按原来的方式合并。",
+  "maxcraft.tooltip.extended_stock_ticker.1": "允许的物品种类从 9 种提升到 27 种。",
+  "maxcraft.tooltip.extended_stock_ticker.2": "订单栏仍然只有九格宽，超出的种类显示为 [+N]，点物品栏里的物品即可调整数量。",
+  "maxcraft.tooltip.packager": "用大型包裹构件右键它，可以原地升级成大型打包机。",
+  "maxcraft.tooltip.repackager": "用大型包裹构件右键它，可以原地升级成大型理包机。",
+  "maxcraft.tooltip.stock_ticker": "用大型包裹构件右键它，可以原地升级成扩展仓储发报机，物流网络与分类都会保留。",
+  "maxcraft.tooltip.factory_gauge.1": "用大型包裹构件右键某个面板，可以加大那一格的合成网格。",
+  "maxcraft.tooltip.factory_gauge.2": "一块仪表的四个面板各自独立，升级一格不会影响另外三格。",
+  "maxcraft.tooltip.extended_factory_gauge.1": "扩展工厂仪表：这块仪表的面板可以使用更大的合成网格。",
+  "maxcraft.tooltip.extended_factory_gauge.2": "继续用大型包裹构件右键某个面板，可以再加大那一格。"
 }

@@ -9,4 +9,22 @@
   "maxcraft.gui.factory_panel.crafting_input": "Crafting Ingredient",
   "maxcraft.gui.factory_panel.crafting_input_tip": "Part of the %s pattern this gauge is set to work with.",
   "maxcraft.gui.factory_panel.page": "Input page %s/%s"
+,
+  "maxcraft.tooltip.hold_shift": "Hold Shift for details",
+  "maxcraft.tooltip.large_package_component.1": "Large Package Component.",
+  "maxcraft.tooltip.large_package_component.2": "Right click a Packager, Re-Packager or Stock Ticker with it to upgrade that machine in place; its logistics network, settings and contents are kept.",
+  "maxcraft.tooltip.large_package_component.3": "Craft it with a Factory Gauge for an Extended Factory Gauge, or right click a gauge panel to enlarge that panel's crafting grid.",
+  "maxcraft.tooltip.large_packager.1": "Fills 27 stacks into a single package (adjustable in the server config).",
+  "maxcraft.tooltip.large_packager.2": "What comes out is still an ordinary package - frogports, postboxes, unpacking and the Repackager all handle it.",
+  "maxcraft.tooltip.large_repackager.1": "Waits for the whole order to arrive, then merges it into one package.",
+  "maxcraft.tooltip.large_repackager.2": "Packages without order information, such as a redstone request, still merge the way they always did.",
+  "maxcraft.tooltip.extended_stock_ticker.1": "Raises the number of item types one order may contain from 9 to 27.",
+  "maxcraft.tooltip.extended_stock_ticker.2": "The order bar is still nine wide; anything past that shows as [+N], and clicking an item in the stock grid adjusts its amount.",
+  "maxcraft.tooltip.packager": "Right click it with a Large Package Component to upgrade it into a Large Packager.",
+  "maxcraft.tooltip.repackager": "Right click it with a Large Package Component to upgrade it into a Large Re-Packager.",
+  "maxcraft.tooltip.stock_ticker": "Right click it with a Large Package Component to upgrade it into an Extended Stock Ticker, keeping its network and categories.",
+  "maxcraft.tooltip.factory_gauge.1": "Right click a panel with a Large Package Component to enlarge that panel's crafting grid.",
+  "maxcraft.tooltip.factory_gauge.2": "A gauge's four panels are independent: enlarging one never touches the other three.",
+  "maxcraft.tooltip.extended_factory_gauge.1": "Extended Factory Gauge: this gauge's panels can work with a larger crafting grid.",
+  "maxcraft.tooltip.extended_factory_gauge.2": "Right click a panel with another Large Package Component to enlarge it further."
 }
