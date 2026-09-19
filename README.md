@@ -1,164 +1,153 @@
 # Create: MaxCraft
 
-A **NeoForge 1.21.1** addon for **Create 6.0.10** (`net.neoforged.moddev` 2.0.78, NeoForge 21.1.248,
-Parchment 2024.11.17, Java 21). It lifts Create's hard-coded limits on packages, factory panels and Mechanical
-Crafter arrays: packages of any size, crafting grids of any size, and machines that place a whole batch into a
-crafter array in the right shape.
+面向 **NeoForge 1.21.1** 的 **Create 6.0.10**（机械动力）附属模组（`net.neoforged.moddev` 2.0.78、
+NeoForge 21.1.248、Parchment 2024.11.17、Java 21）。它拆掉了 Create 在包裹、工厂仪表面板和动力合成器阵列上的
+硬性上限：多大的包裹都能装、多大的合成网格都能用，机器也能把一整批原料按正确的形状铺进合成器阵列。
 
-The mod id stays `maxcraft`; the name shown in the mod list is **Create: MaxCraft**.
+**mod id 保持 `maxcraft`**，mod 列表里显示的名字是 **Create: MaxCraft**。
 
-## What this mod depends on
+## 依赖
 
-| Mod | 中文名 | Relation | How it is provided |
-| --- | --- | --- | --- |
-| Create 6.0.10-231 | 机械动力 | **required** | Gradle dependency from `maven.createmod.net` |
-| Create: Cyber Goggles 1.21.1-8.6.1 | 机械动力：赛博护目镜 | **optional**, client side | jar in `run/mods/` |
+| 模组 | 关系 | 来源 |
+| --- | --- | --- |
+| Create 6.0.10-231（机械动力） | **必需** | Gradle 依赖，来自 `maven.createmod.net` |
+| Create: Cyber Goggles 1.21.1-8.6.1（机械动力：赛博护目镜） | **可选**（软依赖），仅客户端 | `run/mods/` 里的 jar |
 
-Create's own libraries (Flywheel, Ponder, Catnip, Registrate, Vanillin) come in transitively — they are part of
-Create, not extra mods.
+Create 自己的库（Flywheel、Ponder、Catnip、Registrate、Vanillin）是随它传入的，属于 Create 而非额外模组。
 
-### Dev-run-only mods (not build dependencies)
+### 仅供开发运行的模组（不是构建依赖）
 
-Installed as jars in `run/mods/` only, on neither the compile classpath nor any Gradle configuration:
+只放在 `run/mods/`，不在编译类路径、也不在任何 Gradle 配置里，随时可以删：
 
-| Mod | 中文名 | Version |
+| 模组 | 中文名 | 版本 |
 | --- | --- | --- |
 | Just Enough Items | JEI | 19.51.0.418 |
 | Just Enough Characters | 通用拼音搜索 | 4.5.29 |
 | Sodium | — | 0.8.13+mc1.21.1 |
 | Lithium | — | 0.15.4+mc1.21.1 |
 
-Sodium, JEI and Just Enough Characters are client-only, which is why the **server run has its own game directory**
-(`run-server/`).
+Sodium、JEI、通用拼音搜索都是纯客户端模组，所以**服务端单独使用游戏目录** `run-server/`。
 
-## Content
+## 新增内容
 
-| Thing | 中文名 | How it is made |
-| --- | --- | --- |
-| Large Package Component | 大型包裹构件 | **Sequenced assembly**: Sturdy Sheet, deployed with a Precision Mechanism, then pressed |
-| Large Packager | 大型打包机 | Packager + component, or right click a Packager with one |
-| Large Re-Packager | 大型理包机 | Re-Packager + component, or right click a Re-Packager with one |
-| Extended Stock Ticker | 扩展仓储发报机 | Stock Ticker + component, or right click a Stock Ticker with one |
-| Extended Factory Gauge | 扩展工厂仪表 | Factory Gauge + component (an item: Create's gauge carrying its grid size) |
-
-The Large Packager and the Large Re-Packager also convert into each other at a crafting table, mirroring Create's
-own `repackager_from_conversion` recipe. In-place upgrades carry the block entity's NBT across, so networks,
-settings and held boxes survive.
-
-## The package system
-
-Create caps a package at nine stacks and stores contents in a vanilla `ItemContainerContents` (256 slots). This mod
-lifts both, without touching the request/packaging limits:
-
-| File | What it does |
+| 内容 | 制作方式 |
 | --- | --- |
-| `logistics/PackageContents.java` | reads/writes package contents at any size, keeps a readable mirror |
-| `registry/MaxcraftDataComponents.java` | `maxcraft:package_bulk_contents`, an unbounded `List<ItemStack>` |
-| `mixin/PackageItemMixin.java` | `getContents` / `containing` use the size-aware implementation |
-| `mixin/PackageRepackageHelperMixin.java` | the merge produces **one** package per order, however many stacks |
-| `mixin/RepackagerBlockEntityMixin.java` | the Repackager collects its whole inventory before merging |
-| `mixin/PackagerBlockEntityMixin.java` | the Large Packager fills `maxPackageStacks` stacks per cycle |
+| 大型包裹构件 | **序列组装**：坚固板 → 用精密构件部署 → 冲压 |
+| 大型打包机 | 打包机 + 构件；或手持构件右键打包机 |
+| 大型理包机 | 理包机 + 构件；或手持构件右键理包机 |
+| 扩展仓储发报机 | 仓储发报机 + 构件；或手持构件右键仓储发报机 |
+| 扩展工厂仪表 | 工厂仪表 + 构件（它是一个**物品**：Create 的仪表带着自己的网格尺寸） |
 
-**Nothing is ever voided.** Unpacking, dropping, sawing apart and merging all read through the patched
-`getContents`, so the full contents travel.
+大型打包机与大型理包机还能在工作台上互相转换，对应 Create 自己的 `repackager_from_conversion` 配方。
+原地升级会整份搬运方块实体的 NBT，所以物流网络、设置和夹着的包裹都不会丢。
 
-### Delivery and pickup
+## 包裹系统
 
-| Path | Behaviour |
+Create 把一个包裹限制在 9 组，并用原版 `ItemContainerContents`（上限 256 格）存内容。本模组把这两个上限都
+拿掉了，同时**不动请求/打包的限制**：
+
+| 文件 | 作用 |
 | --- | --- |
-| Large Packager → Mechanical Crafter | the pattern decides the layout (see below) |
-| Large Re-Packager | waits for the **whole** order and merges it into **one** package |
-| Breaking a gauge with 2+ panels | removes one panel, drops an extended gauge item |
-| Wrenching a panel off | same |
-| Breaking a gauge with one panel left | the block drops through the loot table, marked |
+| `logistics/PackageContents.java` | 任意大小的包裹内容读写，并保留一份可读的镜像 |
+| `registry/MaxcraftDataComponents.java` | `maxcraft:package_bulk_contents`，不限长度的 `List<ItemStack>` |
+| `mixin/PackageItemMixin.java` | `getContents` / `containing` 走尺寸无关的实现 |
+| `mixin/PackageRepackageHelperMixin.java` | 合并后每个订单**只有一个**包裹，无论多少组 |
+| `mixin/RepackagerBlockEntityMixin.java` | 理包机先把整个库存收齐再合并 |
+| `mixin/PackagerBlockEntityMixin.java` | 大型打包机每个周期装 `maxPackageStacks` 组 |
 
-A dropped or wrenched extended gauge is **bare**: it carries its grid size and its upgrade marker, and nothing else.
-Like a gauge fresh off the crafting table it has to be bound to a network (right click a Stock Ticker) before it can
-be placed.
+**任何情况下都不吞物品**：解包、掉落、锯开、合并全都走打过补丁的 `getContents`，内容完整传递。
 
-## The Extended Factory Gauge
+### 投递与拾取
 
-Create's gauge, with a **crafting grid size stored in the panel's data** — there is no second block.
+| 路径 | 行为 |
+| --- | --- |
+| 大型打包机 → 动力合成器 | 由 pattern 决定摆法（见下） |
+| 大型理包机 | 等**整个**订单到齐，合并成**一个**包裹 |
+| 挖掉有 ≥2 个面板的仪表 | 拆掉一个面板，掉落扩展仪表物品 |
+| 扳手拆面板 | 同上 |
+| 只剩一个面板时挖掉整块 | 走战利品表掉落，同样是扩展仪表 |
 
-* **Per panel.** A gauge's four panels are four machines sharing a block: each keeps its own size, and upgrading one
-  never touches the other three.
-* **Upgrading.** Right click a panel with a Large Package Component, or use an extended gauge item. A slot that
-  already has a panel is left alone — nothing is changed and nothing is consumed.
-* **Items.** An extended gauge item carries a **single size** (`maxcraft:gauge_grid_sizes`, one value), so gauges of
-  the same size are the same item and stack; which panel the size lands on is decided when the item is used. The size
-  travels in a component of this mod's own, so Create's tuning and tag rewrites cannot lose it.
-* **In the world**, panels that work with a large grid are drawn in brass. The panel body is Create's own dynamic
-  model, so the model data carries the set of extended slots and the panel is laid out from a brass copy of Create's
-  model — the shape and placement are Create's.
-* **Display.** In crafting mode the panel shows its **material list** (and pages through it with the ‹ › buttons when
-  there are more than nine); hovering it shows a **preview of the recipe's own shape**, never the padded grid.
-  Ordinary gauges look and behave exactly as they did.
+掉落/拆下来的扩展仪表是**光板**：只带尺寸和升级标记，别的什么都没有。和刚从工作台拿到的仪表一样，必须先用
+它右键仓储发报机绑定网络才能放置。
 
-## Crafting larger recipes
+## 扩展工厂仪表
 
-* **The pattern.** A recipe smaller than the panel's grid is laid into the grid's **top left** with empty cells
-  around it, so the machine receives a pattern for its own size. A recipe that does not fit keeps its own shape.
-* **The layout.** Create hands the crafters over row by row; the mod reads how many crafters a row holds from the
-  array itself and lays the pattern out at that width, so a 10x10 recipe lands as a 10x10 block in a 12x12 array
-  rather than skewing.
-* **Batches.** A package carrying many crafts' worth of ingredients fills the cells the pattern asks for in rounds —
-  one item per cell per round — so the surplus is spread evenly instead of piling into the first crafter.
+就是 Create 的仪表，只不过**合成网格尺寸存在面板自己的数据里** —— 没有第二个方块。
 
-## Configuration
+* **每格独立。** 一块仪表的四个面板是共用方块的四个机器，各自记自己的尺寸；升级其中一个永远不会动到另外三个。
+* **升级方式。** 手持大型包裹构件右键某个面板，或使用扩展仪表物品。**已经有面板的格子会直接拒绝** —— 不改尺寸、
+  也不消耗物品。
+* **物品形态。** 扩展仪表物品只带**一个尺寸**（`maxcraft:gauge_grid_sizes`，单值），所以同尺寸的仪表就是同一个物品、
+  可以堆叠；尺寸具体落到哪一格是**使用时**决定的。尺寸放在本模组自己的数据组件里，Create 的调谐和 tag 重写都碰不到它。
+* **世界内显示。** 使用大网格的面板会画成黄铜色。面板本体是 Create 自己的动态模型，所以模型数据里带上"哪些格子是
+  扩展的"，再用 Create 模型的黄铜副本摆放 —— 形状和位置仍然是 Create 的。
+* **面板界面。** 合成模式下显示**材料列表**（超过 9 个用 ‹ › 翻页），鼠标停在上面会弹出**配方自身形状**的预览，
+  而不再是补出来的整块大网格。普通仪表的样子和行为完全没变。
 
-`maxcraft-server.toml` (in `<world>/serverconfig/` in single player, `config/` on a dedicated server):
+## 更大的配方
+
+* **Pattern。** 比面板网格小的配方会铺在网格的**左上角**、其余是空格，这样机器收到的是"它自己尺寸"的 pattern；
+  装不下的配方保持自己的形状，不被压扁。
+* **排布。** Create 是按行把合成器交给我们的；本模组从阵列本身读出"一行有几台"，再按这个宽度排版，所以 10×10 的
+  配方落到 12×12 的阵列上是一个正方的 10×10 块，而不是错位。
+* **批量。** 一个装了"好几批原料"的包裹，会按轮次往 pattern 要求的那些格子里填（每轮每格一个），多余的原料平均铺开，
+  而不是全塞进第一台合成器。
+
+## 配置
+
+`maxcraft-server.toml`（单人游戏在 `<存档>/serverconfig/`，专用服务器在 `config/`）：
 
 ```toml
-# The largest number of stacks a single package may hold.
+# 单个包裹最多能装多少组。大型打包机一次装这么多组，理包机合并出来的包裹也最多这么大。
 maxPackageStacks = 64
 ```
 
-## Commands
+## 常用命令
 
-This project uses the system Gradle 9.7.0 (the same one the sibling `../m8s` project uses) — there is no wrapper.
+本项目使用系统 Gradle 9.7.0（和隔壁 `../m8s` 用同一个），没有 wrapper。
 
 ```bash
-gradle build          # compile + jar
-gradle runClient      # launch the Minecraft client (needs DISPLAY), game dir: run/
-gradle runServer      # launch a dedicated server (no client-only mods), game dir: run-server/
-gradle runData        # run the data generators
+gradle build          # 编译 + 打包
+gradle runClient      # 启动客户端（需要 DISPLAY），游戏目录：run/
+gradle runServer      # 启动专用服务器（不加载纯客户端模组），游戏目录：run-server/
+gradle runData        # 运行数据生成器
 ```
 
-Running the client outside a full desktop session needs the session environment, e.g.:
+在没有完整桌面会话的环境里启动客户端需要带上会话变量，例如：
 
 ```bash
 DISPLAY=:1 WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 \
   XAUTHORITY=/run/user/1000/xauth_XXXXXX gradle runClient
 ```
 
-## Self test
+## 自测
 
-`PackageSystemSelfTest` exercises the patches inside a real server — package storage round trips, the
-Re-Packager's merge, per-panel grid sizes, every pickup and placement path, and the pattern layout:
+`PackageSystemSelfTest` 会在真实服务端里跑一遍补丁：包裹存储往返、理包机合并、逐面板的网格尺寸、
+每一条拾取与放置路径，以及 pattern 的排布：
 
 ```bash
 MAXCRAFT_SELFTEST=1 gradle runServer
 ```
 
-It logs `SELFTEST PASSED` / `SELFTEST FAILED` with a check count and stops the server. Inert without the env var.
+它会打印 `SELFTEST PASSED` / `SELFTEST FAILED` 和检查项数量，然后停服。不带这个环境变量时完全不生效。
 
-## Layout
+## 目录结构
 
 ```
-build.gradle                                 moddev 2.0.78 + Create dependency
-gradle.properties                            versions (NeoForge 21.1.248, Create 6.0.10-231, ...)
-src/main/java/dev/maxcraft/Maxcraft.java     entry point (@Mod("maxcraft"))
-src/main/java/dev/maxcraft/content/          the machines this mod adds
-src/main/java/dev/maxcraft/logistics/        package contents, pattern layout, size storage
-src/main/java/dev/maxcraft/mixin/            the Create patches
-src/main/resources/maxcraft.mixins.json      mixin config
-run/                                         client dev directory (world, logs, config, mods)
-run-server/                                  dedicated server directory
+build.gradle                                 moddev 2.0.78 + Create 依赖
+gradle.properties                            版本（NeoForge 21.1.248、Create 6.0.10-231 等）
+src/main/java/dev/maxcraft/Maxcraft.java     入口（@Mod("maxcraft")）
+src/main/java/dev/maxcraft/content/          本模组新增的机器
+src/main/java/dev/maxcraft/logistics/        包裹内容、pattern 排布、尺寸存取
+src/main/java/dev/maxcraft/mixin/            对 Create 的补丁
+src/main/resources/maxcraft.mixins.json      mixin 配置
+run/                                         客户端开发目录（存档、日志、配置、mods）
+run-server/                                  专用服务器目录
 ```
 
-The Gradle/NeoForge/Minecraft artifact cache is shared with `../m8s` through `~/.gradle`.
+Gradle / NeoForge / Minecraft 的构建缓存与 `../m8s` 共用 `~/.gradle`。
 
-## License
+## 许可
 
-**GNU Lesser General Public License v3.0 or later** — see `LICENSE`. The full text is the one published by the
-FSF, and `mod_license` in `gradle.properties` is what the mod list shows.
+**GNU Lesser General Public License v3.0 or later**，见 `LICENSE`（FSF 发布的官方全文）。
+mod 列表里显示的许可来自 `gradle.properties` 的 `mod_license`。
