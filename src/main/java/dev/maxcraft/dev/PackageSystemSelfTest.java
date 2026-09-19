@@ -1,5 +1,8 @@
 package dev.maxcraft.dev;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +37,9 @@ import dev.maxcraft.registry.MaxcraftBlockEntityTypes;
 import dev.maxcraft.registry.MaxcraftDataComponents;
 import dev.maxcraft.registry.MaxcraftBlocks;
 import dev.maxcraft.registry.MaxcraftItems;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
@@ -158,6 +164,54 @@ public final class PackageSystemSelfTest {
 
         // 12. A recipe smaller than the machine is laid into the machine's top left.
         patternLayout();
+
+        // 13. Every item description is written under the id the game will look it up with.
+        itemDescriptions();
+    }
+
+    /**
+     * The description of an item is read from {@code <description id>.tooltip.summary}, and a block item takes that
+     * id from its block - so text filed under "item." would never be found on a machine that is placed and picked up
+     * as a block. This checks every item this mod describes against the language files that ship with it, in both
+     * languages, because a missing key means no tooltip at all rather than a wrong one.
+     */
+    private static void itemDescriptions() {
+        for (String lang : List.of("zh_cn", "en_us")) {
+            JsonObject translations = maxcraftTranslations(lang);
+            describe(translations, lang, MaxcraftItems.LARGE_PACKAGE_COMPONENT.get());
+            describe(translations, lang, MaxcraftBlocks.LARGE_PACKAGER_ITEM.get());
+            describe(translations, lang, MaxcraftBlocks.LARGE_REPACKAGER_ITEM.get());
+            describe(translations, lang, MaxcraftBlocks.EXTENDED_STOCK_TICKER_ITEM.get());
+            describe(translations, lang, AllBlocks.PACKAGER.get()
+                .asItem());
+            describe(translations, lang, AllBlocks.REPACKAGER.get()
+                .asItem());
+            describe(translations, lang, AllBlocks.STOCK_TICKER.get()
+                .asItem());
+            describe(translations, lang, AllBlocks.FACTORY_GAUGE.get()
+                .asItem());
+        }
+    }
+
+    private static void describe(JsonObject translations, String lang, Item item) {
+        String key = item.getDescriptionId() + ".tooltip.summary";
+        check("the description of " + item.getDescriptionId() + " is written under " + key + " (" + lang + ")",
+            translations.has(key));
+    }
+
+    private static JsonObject maxcraftTranslations(String lang) {
+        String path = "/assets/maxcraft/lang/" + lang + ".json";
+        try (InputStream in = PackageSystemSelfTest.class.getResourceAsStream(path)) {
+            if (in == null) {
+                Maxcraft.LOGGER.error("SELFTEST: {} is not on the class path", path);
+                return new JsonObject();
+            }
+            return JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8))
+                .getAsJsonObject();
+        } catch (Exception e) {
+            Maxcraft.LOGGER.error("SELFTEST: could not read {}", path, e);
+            return new JsonObject();
+        }
     }
 
     /** The new content exists and is wired to the right machines. */
