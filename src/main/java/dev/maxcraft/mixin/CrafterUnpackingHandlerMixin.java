@@ -16,6 +16,7 @@ import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
 import com.simibubi.create.impl.unpacking.CrafterUnpackingHandler;
 
+import dev.maxcraft.MaxcraftAdvancements;
 import dev.maxcraft.content.logistics.LargePackageContext;
 
 import net.minecraft.core.BlockPos;
@@ -37,6 +38,10 @@ import net.minecraft.world.level.block.state.BlockState;
  */
 @Mixin(CrafterUnpackingHandler.class)
 public abstract class CrafterUnpackingHandlerMixin {
+
+    /** A 5x5 arrangement: the first size a plain Factory Gauge could never send. */
+    @Unique
+    private static final int LARGE_PATTERN = 5;
 
     /**
      * The side length of a pattern given its entry count. A gauge's grid is square, so a perfect square count is
@@ -165,8 +170,12 @@ public abstract class CrafterUnpackingHandlerMixin {
             }
         }
 
-        if (!simulate)
+        if (!simulate) {
+            // 我们需要更大的合成器 - an arrangement wider than the 3x3 a plain gauge can send has reached the array.
+            if (width >= LARGE_PATTERN && craftingContext.size() / width >= LARGE_PATTERN)
+                MaxcraftAdvancements.awardWitnesses(level, pos, MaxcraftAdvancements.LARGE_CRAFTING);
             crafter.checkCompletedRecipe(true);
+        }
 
         cir.setReturnValue(true);
     }

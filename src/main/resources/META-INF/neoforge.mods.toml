@@ -11,6 +11,7 @@ modId = "${mod_id}"
 version = "${mod_version}"
 displayName = "${mod_name}"
 authors = "${mod_authors}"
+displayURL = "https://modrinth.com/mod/createmaxcraft"
 description = '''${mod_description}'''
 
 [[dependencies.${mod_id}]]

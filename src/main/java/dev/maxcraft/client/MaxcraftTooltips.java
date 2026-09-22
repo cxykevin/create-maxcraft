@@ -35,6 +35,7 @@ public final class MaxcraftTooltips {
     public static void registerItemDescriptions(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
             describe(MaxcraftItems.LARGE_PACKAGE_COMPONENT.get());
+            describe(MaxcraftItems.CREATIVE_BLAZE_CAKE_INCOMPLETE.get());
             describe(MaxcraftBlocks.LARGE_PACKAGER_ITEM.get());
             describe(MaxcraftBlocks.LARGE_REPACKAGER_ITEM.get());
             describe(MaxcraftBlocks.EXTENDED_STOCK_TICKER_ITEM.get());

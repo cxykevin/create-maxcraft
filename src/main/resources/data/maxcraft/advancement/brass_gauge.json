@@ -1,0 +1,28 @@
+{
+  "parent": "maxcraft:more_kinds",
+  "criteria": {
+    "0": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "0"
+    ]
+  ],
+  "display": {
+    "icon": {
+      "count": 1,
+      "id": "create:factory_gauge"
+    },
+    "title": {
+      "translate": "advancement.maxcraft.brass_gauge"
+    },
+    "description": {
+      "translate": "advancement.maxcraft.brass_gauge.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true
+  }
+}

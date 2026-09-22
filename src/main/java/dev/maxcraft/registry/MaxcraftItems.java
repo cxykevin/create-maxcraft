@@ -25,6 +25,14 @@ public final class MaxcraftItems {
     public static final DeferredHolder<Item, Item> LARGE_PACKAGE_COMPONENT_INCOMPLETE =
         REGISTRAR.registerSimpleItem("large_package_component_incomplete", new Item.Properties());
 
+    /**
+     * 创造烈焰蛋糕（半成品）/ Incomplete Creative Blaze Cake - the Easter egg's middle step: 900 Blaze Cakes are
+     * pressed into one of these, and 900 of these into Create's Creative Blaze Cake. Kept out of the creative tabs,
+     * like the component's own work-in-progress item.
+     */
+    public static final DeferredHolder<Item, Item> CREATIVE_BLAZE_CAKE_INCOMPLETE =
+        REGISTRAR.registerSimpleItem("creative_blaze_cake_incomplete", new Item.Properties());
+
     private MaxcraftItems() {
     }
 

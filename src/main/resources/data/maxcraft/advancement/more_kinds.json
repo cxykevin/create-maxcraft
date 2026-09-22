@@ -1,0 +1,28 @@
+{
+  "parent": "maxcraft:large_package",
+  "criteria": {
+    "0": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "0"
+    ]
+  ],
+  "display": {
+    "icon": {
+      "count": 1,
+      "id": "maxcraft:extended_stock_ticker"
+    },
+    "title": {
+      "translate": "advancement.maxcraft.more_kinds"
+    },
+    "description": {
+      "translate": "advancement.maxcraft.more_kinds.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true
+  }
+}

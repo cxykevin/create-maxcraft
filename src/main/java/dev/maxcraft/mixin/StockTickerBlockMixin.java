@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.simibubi.create.content.logistics.stockTicker.StockTickerBlock;
 
+import dev.maxcraft.MaxcraftAdvancements;
 import dev.maxcraft.content.logistics.ExtendedStockTickerBlock;
 
 import net.minecraft.core.BlockPos;
@@ -37,6 +38,9 @@ public abstract class StockTickerBlockMixin {
             return;
         if (!ExtendedStockTickerBlock.convert(level, pos, player, stack))
             return;
+
+        // [+N] - the extra kinds of item the ticker can now carry.
+        MaxcraftAdvancements.award(player, MaxcraftAdvancements.MORE_KINDS);
 
         cir.setReturnValue(level.isClientSide() ? ItemInteractionResult.SUCCESS
             : ItemInteractionResult.sidedSuccess(false));

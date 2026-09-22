@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 
+import dev.maxcraft.MaxcraftAdvancements;
 import dev.maxcraft.content.logistics.LargePackagerBlock;
 import dev.maxcraft.content.logistics.LargeRepackagerBlock;
 
@@ -37,11 +38,16 @@ public abstract class PackagerBlockMixin {
         if (!LargePackagerBlock.isUpgradeItem(stack))
             return;
 
-        boolean converted = AllBlocks.PACKAGER.has(state)
+        boolean packager = AllBlocks.PACKAGER.has(state);
+        boolean converted = packager
             ? LargePackagerBlock.convert(level, pos, player, stack)
             : AllBlocks.REPACKAGER.has(state) && LargeRepackagerBlock.convert(level, pos, player, stack);
         if (!converted)
             return;
+
+        // 大包裹 - the advancement is about the packager; a re-packager upgrade is a different machine.
+        if (packager)
+            MaxcraftAdvancements.award(player, MaxcraftAdvancements.LARGE_PACKAGE);
 
         cir.setReturnValue(level.isClientSide() ? ItemInteractionResult.SUCCESS
             : ItemInteractionResult.sidedSuccess(false));

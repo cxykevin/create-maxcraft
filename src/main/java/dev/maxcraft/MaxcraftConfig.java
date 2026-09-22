@@ -29,6 +29,13 @@ public final class MaxcraftConfig {
             "dropped, and the packages are still ordinary packages.")
         .defineInRange("maxPackageStacks", DEFAULT_MAX_PACKAGE_STACKS, 1, 4096);
 
+    /** Whether a crafter placed on top of a row of them brings the rest of that row with it. */
+    public static final ModConfigSpec.BooleanValue AUTO_FILL_CRAFTER_ROWS = BUILDER
+        .comment("Placing a Mechanical Crafter on top of a finished row of them places the rest of that row as well,",
+            "so a large array costs one click per row instead of one per block. Sneaking always places a single one.",
+            "把动力合成器放在已有的一排上方时，自动把上面那一排补齐；潜行时只放一个。")
+        .define("autoFillCrafterRows", true);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private MaxcraftConfig() {
@@ -37,6 +44,11 @@ public final class MaxcraftConfig {
     /** The configured package size. Falls back to the default until the config has been loaded. */
     public static int maxPackageStacks() {
         return SPEC.isLoaded() ? MAX_PACKAGE_STACKS.get() : DEFAULT_MAX_PACKAGE_STACKS;
+    }
+
+    /** Whether crafter rows complete themselves. Falls back to the default until the config has been loaded. */
+    public static boolean autoFillCrafterRows() {
+        return !SPEC.isLoaded() || AUTO_FILL_CRAFTER_ROWS.get();
     }
 
     @SubscribeEvent

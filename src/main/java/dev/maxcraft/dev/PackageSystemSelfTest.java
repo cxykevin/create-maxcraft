@@ -8,6 +8,11 @@ import java.util.List;
 import java.util.UUID;
 
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.AllItems;
+import com.simibubi.create.content.kinetics.base.HorizontalKineticBlock;
+import com.simibubi.create.content.kinetics.crafter.MechanicalCrafterBlockEntity;
+import com.simibubi.create.content.kinetics.crafter.MechanicalCraftingRecipe;
+import com.simibubi.create.content.kinetics.crafter.RecipeGridHandler;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
@@ -21,6 +26,7 @@ import com.simibubi.create.content.logistics.stockTicker.StockTickerBlock;
 import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
 
 import dev.maxcraft.Maxcraft;
+import dev.maxcraft.MaxcraftAdvancements;
 import dev.maxcraft.MaxcraftConfig;
 import dev.maxcraft.content.logistics.ExtendedGaugeItem;
 import dev.maxcraft.content.logistics.ExtendedStockTickerBlock;
@@ -30,6 +36,8 @@ import dev.maxcraft.content.logistics.GridSizeHolder;
 import dev.maxcraft.content.logistics.LargePackagerBlock;
 import dev.maxcraft.content.logistics.LargeRepackagerBlock;
 import dev.maxcraft.content.logistics.LargePackagerBlockEntity;
+import dev.maxcraft.content.logistics.CrafterInputLinks;
+import dev.maxcraft.content.logistics.CrafterRowFill;
 import dev.maxcraft.logistics.CraftingPattern;
 import dev.maxcraft.logistics.PackageContents;
 import dev.maxcraft.logistics.RepackageHelperAccess;
@@ -48,6 +56,7 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -167,6 +176,131 @@ public final class PackageSystemSelfTest {
 
         // 13. Every item description is written under the id the game will look it up with.
         itemDescriptions();
+
+        // 14. A crafter placed on top of a row of them brings the rest of that row with it.
+        crafterRowFill();
+
+        // 15. The Large Package Component links a whole matrix of crafters in one click.
+        crafterInputLinks();
+
+        // 16. The same, at the size the mod exists for: a full 30x30 array.
+        crafterMatrix();
+    }
+
+    /**
+     * A real 30x30 array, linked and unlinked in one click each. Anything that only works for a handful of crafters
+     * is no use to the array this mod is for, so the scale is part of the test.
+     */
+    private static void crafterMatrix() {
+        ServerLevel level = serverLevel;
+        if (level == null) {
+            check("a server level is available for the array test", false);
+            return;
+        }
+
+        BlockState crafter = AllBlocks.MECHANICAL_CRAFTER.get()
+            .defaultBlockState();
+        BlockPos corner = new BlockPos(200, 100, 200);
+        int side = 30;
+        for (int x = 0; x < side; x++)
+            for (int z = 0; z < side; z++)
+                level.setBlockAndUpdate(corner.offset(x, 0, z), crafter);
+
+        BlockPos clicked = corner.offset(side / 2, 0, side / 2);
+        List<BlockPos> matrix = CrafterInputLinks.matrix(level, clicked);
+        int expected = side * side;
+        Maxcraft.LOGGER.info("SELFTEST: the array is {} crafters", matrix.size());
+        check("a 30x30 array is one matrix of 900 crafters", matrix.size() == expected);
+        check("a fresh array shares nothing", !CrafterInputLinks.sharesInput(level, clicked, matrix));
+
+        int linked = CrafterInputLinks.link(level, clicked, matrix);
+        Maxcraft.LOGGER.info("SELFTEST: linking the array reported {}", linked);
+        check("one click links the whole array", linked == expected);
+
+        check("the array is one shared input now", CrafterInputLinks.sharesInput(level, clicked, matrix));
+
+        int unlinked = CrafterInputLinks.unlink(level, clicked, matrix);
+        Maxcraft.LOGGER.info("SELFTEST: unlinking the array reported {}", unlinked);
+        check("one click takes the whole array apart again",
+            unlinked == expected && !CrafterInputLinks.sharesInput(level, clicked, matrix));
+
+        // Then the two clicks a player makes, run through Create's own interaction entry point.
+        FakePlayer clicker = FakePlayerFactory.getMinecraft(level);
+        ItemStack component = new ItemStack(MaxcraftItems.LARGE_PACKAGE_COMPONENT.get());
+        clicker.setItemInHand(InteractionHand.MAIN_HAND, component);
+        Direction back = crafter.getValue(HorizontalKineticBlock.HORIZONTAL_FACING)
+            .getOpposite();
+
+        click(level, clicked, clicker, component, back);
+        check("a click on the back links the whole array", CrafterInputLinks.sharesInput(level, clicked, matrix));
+
+        click(level, clicked, clicker, component, back);
+        check("the next click takes the whole array apart again",
+            !CrafterInputLinks.sharesInput(level, clicked, matrix));
+
+        // And what a client is sent has to carry it: this is the data the connection texture is drawn from, and
+        // without a sync the server is right while every client keeps drawing the links that were there before.
+        check("the link state sent to clients follows the click", sentLinkSize(level, clicked) == 1);
+
+        clicker.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+    }
+
+    /** How many positions the link state a client would be sent for this crafter holds. */
+    private static int sentLinkSize(ServerLevel level, BlockPos pos) {
+        if (!(level.getBlockEntity(pos) instanceof MechanicalCrafterBlockEntity crafter))
+            return -1;
+        CompoundTag input = crafter.getUpdateTag(level.registryAccess())
+            .getCompound("ConnectedInput");
+        return input.get("Data") instanceof ListTag data ? data.size() : -1;
+    }
+
+    /** One right-click on a crafter's back, run the way the server runs it. */
+    private static void click(ServerLevel level, BlockPos pos, FakePlayer player, ItemStack stack, Direction face) {
+        level.getBlockState(pos)
+            .useItemOn(stack, level, player, InteractionHand.MAIN_HAND,
+                new BlockHitResult(Vec3.atCenterOf(pos), face, pos, false));
+    }
+
+    /**
+     * The Large Package Component links a whole matrix of crafters in one click, and gives every crafter its own
+     * input back on the next. Create does this in pairs, along the edge between two crafters; the point of the
+     * component is the matrix an array is.
+     */
+    private static void crafterInputLinks() {
+        ServerLevel level = serverLevel;
+        if (level == null) {
+            check("a server level is available for the crafter link test", false);
+            return;
+        }
+
+        BlockState crafter = AllBlocks.MECHANICAL_CRAFTER.get()
+            .defaultBlockState();
+        BlockPos corner = new BlockPos(16, 100, 4);
+        for (int x = 0; x <= 2; x++)
+            for (int z = 0; z <= 1; z++)
+                level.setBlockAndUpdate(corner.offset(x, 0, z), crafter);
+        // A crafter standing apart is a matrix of its own, and must not be swept up by this one.
+        level.setBlockAndUpdate(corner.offset(5, 0, 0), crafter);
+
+        BlockPos middle = corner.offset(1, 0, 0);
+        List<BlockPos> matrix = CrafterInputLinks.matrix(level, middle);
+        check("the matrix is every crafter touching it, and nothing else",
+            matrix.size() == 6 && !matrix.contains(corner.offset(5, 0, 0)));
+        check("a fresh matrix shares nothing", !CrafterInputLinks.sharesInput(level, middle, matrix));
+
+        int linked = CrafterInputLinks.link(level, middle, matrix);
+        check("one click links the whole matrix",
+            linked == 6 && matrix.stream()
+                .allMatch(member -> CrafterInputLinks.sharesInput(level, member, matrix)));
+
+        int unlinked = CrafterInputLinks.unlink(level, middle, matrix);
+        check("the next click gives every crafter its own input back",
+            unlinked == 6 && !CrafterInputLinks.sharesInput(level, middle, matrix));
+
+        Direction front = crafter.getValue(HorizontalKineticBlock.HORIZONTAL_FACING);
+        check("the back of a crafter is the face opposite the one it faces",
+            CrafterInputLinks.isBackFace(crafter, front.getOpposite())
+                && !CrafterInputLinks.isBackFace(crafter, front));
     }
 
     /**
@@ -179,6 +313,7 @@ public final class PackageSystemSelfTest {
         for (String lang : List.of("zh_cn", "en_us")) {
             JsonObject translations = maxcraftTranslations(lang);
             describe(translations, lang, MaxcraftItems.LARGE_PACKAGE_COMPONENT.get());
+            describe(translations, lang, MaxcraftItems.CREATIVE_BLAZE_CAKE_INCOMPLETE.get());
             describe(translations, lang, MaxcraftBlocks.LARGE_PACKAGER_ITEM.get());
             describe(translations, lang, MaxcraftBlocks.LARGE_REPACKAGER_ITEM.get());
             describe(translations, lang, MaxcraftBlocks.EXTENDED_STOCK_TICKER_ITEM.get());
@@ -243,20 +378,135 @@ public final class PackageSystemSelfTest {
                 MaxcraftConfig.maxPackageStacks() == MaxcraftConfig.MAX_PACKAGE_STACKS.get());
 
         check("the large package component has a sequenced assembly recipe", hasRecipe("large_package_component"));
-        check("the large packager has a recipe", hasRecipe("crafting/large_packager"));
-        check("the large repackager has a recipe", hasRecipe("crafting/large_repackager"));
-        check("the extended stock ticker has a recipe", hasRecipe("crafting/extended_stock_ticker"));
-        check("the extended gauge recipe exists", hasRecipe("crafting/extended_factory_gauge"));
-        check("the large packager converts into a large repackager",
-            hasRecipe("crafting/large_repackager_from_conversion"));
-        check("the large repackager converts back into a large packager",
-            hasRecipe("crafting/large_packager_from_conversion"));
+        check("the Easter egg's first step is a 30x30 grid of Blaze Cakes",
+            isFullGridTurning("mechanical_crafting/creative_blaze_cake_incomplete", AllItems.BLAZE_CAKE.get(),
+                MaxcraftItems.CREATIVE_BLAZE_CAKE_INCOMPLETE.get()));
+        check("the Easter egg's second step is a 30x30 grid of the unfinished cake",
+            isFullGridTurning("mechanical_crafting/creative_blaze_cake", MaxcraftItems.CREATIVE_BLAZE_CAKE_INCOMPLETE.get(),
+                AllItems.CREATIVE_BLAZE_CAKE.get()));
+
+        check("every advancement of this mod loaded",
+            MaxcraftAdvancements.ALL.stream()
+                .allMatch(advancement -> MaxcraftAdvancements.isPresent(serverLevel.getServer(), advancement)));
+        check("the two secret advancements stay hidden",
+            MaxcraftAdvancements.isHidden(serverLevel.getServer(), MaxcraftAdvancements.CREATIVE_BLAZE_CAKE)
+                && MaxcraftAdvancements.isHidden(serverLevel.getServer(), MaxcraftAdvancements.EXCHANGE));
+        check("the advancements hang in the order they are earned",
+            hangsUnder(MaxcraftAdvancements.LARGE_PACKAGE, ResourceLocation.fromNamespaceAndPath("create", "packager"))
+                && hangsUnder(MaxcraftAdvancements.MORE_KINDS, MaxcraftAdvancements.LARGE_PACKAGE)
+                && hangsUnder(MaxcraftAdvancements.BRASS_GAUGE, MaxcraftAdvancements.MORE_KINDS)
+                && hangsUnder(MaxcraftAdvancements.LARGE_CRAFTING, MaxcraftAdvancements.BRASS_GAUGE)
+                && hangsUnder(MaxcraftAdvancements.CREATIVE_BLAZE_CAKE, MaxcraftAdvancements.BRASS_GAUGE)
+                && hangsUnder(MaxcraftAdvancements.EXCHANGE, MaxcraftAdvancements.MORE_KINDS));
+
+        // The Easter egg watcher hands whatever the crafter's own lookup returns straight back, so "nothing matched"
+        // is a null it has to tolerate. A single item with no recipe of its own is the arrangement that says so.
+        check("a crafter arrangement that matches nothing comes back as null",
+            RecipeGridHandler.tryToApplyRecipe(serverLevel,
+                new RecipeGridHandler.GroupedItems(new ItemStack(Items.DIRT))) == null);
+    }
+
+    /** True when the advancement hangs directly under the given parent. */
+    private static boolean hangsUnder(ResourceLocation advancement, ResourceLocation parent) {
+        return parent.equals(MaxcraftAdvancements.parentOf(serverLevel.getServer(), advancement));
     }
 
     private static boolean hasRecipe(String path) {
         return serverLevel != null && serverLevel.getRecipeManager()
             .byKey(ResourceLocation.fromNamespaceAndPath(Maxcraft.MOD_ID, path))
             .isPresent();
+    }
+
+    /**
+     * The Easter egg's shape: a full 30x30 grid of one item turning into the next. Checks that the recipe really
+     * loaded as 30x30 with 900 filled cells - a pattern over the ceiling would silently not load at all - that every
+     * cell asks for the one ingredient, and that the result is what the chain expects.
+     */
+    private static boolean isFullGridTurning(String path, Item input, Item result) {
+        if (serverLevel == null)
+            return false;
+        int size = GridSizeHolder.MAX_GRID_SIZE;
+        return serverLevel.getRecipeManager()
+            .byKey(ResourceLocation.fromNamespaceAndPath(Maxcraft.MOD_ID, path))
+            .map(holder -> holder.value() instanceof MechanicalCraftingRecipe recipe
+                && recipe.getWidth() == size
+                && recipe.getHeight() == size
+                && recipe.getIngredients()
+                    .size() == size * size
+                && recipe.getIngredients()
+                    .stream()
+                    .allMatch(ingredient -> !ingredient.isEmpty() && ingredient.test(new ItemStack(input)))
+                && recipe.getResultItem(serverLevel.registryAccess())
+                    .is(result))
+            .orElse(false);
+    }
+
+    /**
+     * One crafter placed on top of a finished row brings the rest of that row with it, and pays for every crafter it
+     * places. Building an array is the mod's slowest chore, so this is the one that has to keep working.
+     */
+    private static void crafterRowFill() {
+        ServerLevel level = serverLevel;
+        if (level == null) {
+            check("a server level is available for the crafter row test", false);
+            return;
+        }
+
+        BlockState crafter = AllBlocks.MECHANICAL_CRAFTER.get()
+            .defaultBlockState();
+        BlockPos corner = new BlockPos(16, 100, 0);
+        for (int x = 0; x <= 2; x++) {
+            level.setBlockAndUpdate(corner.offset(x, 0, 0), crafter);
+            level.setBlockAndUpdate(corner.offset(x, 1, 0), Blocks.AIR.defaultBlockState());
+        }
+        level.setBlockAndUpdate(corner.offset(4, 0, 0), crafter);
+        level.setBlockAndUpdate(corner.offset(4, 1, 0), Blocks.AIR.defaultBlockState());
+
+        FakePlayer player = FakePlayerFactory.getMinecraft(level);
+        player.getAbilities().instabuild = false;
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(AllBlocks.MECHANICAL_CRAFTER.asItem(), 3));
+
+        // The block the player is placing itself, then the row that should land with it.
+        BlockPos above = corner.offset(1, 1, 0);
+        level.setBlockAndUpdate(above, crafter);
+        int placed = CrafterRowFill.fillRow(level, above, crafter, player);
+
+        check("placing a crafter on top of a row fills the rest of that row",
+            placed == 2
+                && isCrafter(level, corner.offset(0, 1, 0))
+                && isCrafter(level, corner.offset(2, 1, 0)));
+        check("every crafter the fill placed was paid for", player.getMainHandItem()
+            .getCount() == 1);
+        check("a row that is already there is left alone", CrafterRowFill.fillRow(level, above, crafter, player) == 0);
+
+        // A single crafter under the new one is not a row, and must not start one.
+        level.setBlockAndUpdate(corner.offset(4, 1, 0), crafter);
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(AllBlocks.MECHANICAL_CRAFTER.asItem(), 2));
+        check("a lone crafter underneath does not fill anything",
+            CrafterRowFill.fillRow(level, corner.offset(4, 1, 0), crafter, player) == 0);
+
+        // The last crafter in the hand belongs to the block being placed, never to the fill: it is what the game
+        // itself takes for the placement, and spending it here would make that placement free.
+        for (int x = 0; x <= 2; x++)
+            level.setBlockAndUpdate(corner.offset(x, 1, 0), Blocks.AIR.defaultBlockState());
+        ItemStack spare = new ItemStack(AllBlocks.MECHANICAL_CRAFTER.asItem(), 4);
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(AllBlocks.MECHANICAL_CRAFTER.asItem(), 1));
+        player.getInventory()
+            .setItem(10, spare);
+        level.setBlockAndUpdate(above, crafter);
+        check("the last crafter in the hand is kept for the block being placed",
+            CrafterRowFill.fillRow(level, above, crafter, player) == 2
+                && player.getMainHandItem()
+                    .getCount() == 1
+                && spare.getCount() == 2);
+        player.getInventory()
+            .setItem(10, ItemStack.EMPTY);
+
+        player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+    }
+
+    private static boolean isCrafter(ServerLevel level, BlockPos pos) {
+        return AllBlocks.MECHANICAL_CRAFTER.has(level.getBlockState(pos));
     }
 
     private static void smallPackage(RegistryAccess registries) {

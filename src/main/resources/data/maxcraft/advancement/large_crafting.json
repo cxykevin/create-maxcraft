@@ -1,0 +1,28 @@
+{
+  "parent": "maxcraft:brass_gauge",
+  "criteria": {
+    "0": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "0"
+    ]
+  ],
+  "display": {
+    "icon": {
+      "count": 1,
+      "id": "create:mechanical_crafter"
+    },
+    "title": {
+      "translate": "advancement.maxcraft.large_crafting"
+    },
+    "description": {
+      "translate": "advancement.maxcraft.large_crafting.desc"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true
+  }
+}

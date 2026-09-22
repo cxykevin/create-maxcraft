@@ -6,6 +6,7 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlock.Pane
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntity;
 
 import dev.maxcraft.Maxcraft;
+import dev.maxcraft.MaxcraftAdvancements;
 import dev.maxcraft.registry.MaxcraftItems;
 
 import net.minecraft.world.InteractionHand;
@@ -78,6 +79,7 @@ public final class GaugeUpgradeHandler {
 
         if (changed) {
             GaugePanelSizes.appearanceChanged(gauge);
+            MaxcraftAdvancements.award(event.getEntity(), MaxcraftAdvancements.BRASS_GAUGE);
             if (!event.getLevel().isClientSide() && !event.getEntity()
                 .getAbilities().instabuild)
                 stack.shrink(1);

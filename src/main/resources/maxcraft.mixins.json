@@ -14,6 +14,8 @@
     "FactoryPanelConnectionHandlerMixin",
     "FactoryPanelInputLimitMixin",
     "GaugeDropMixin",
+    "MechanicalCrafterBlockEntityMixin",
+    "MechanicalCrafterBlockMixin",
     "PackageItemMixin",
     "PackageOrderWithCraftsMixin",
     "PackageRepackageHelperMixin",
@@ -21,7 +23,8 @@
     "PackagerBlockMixin",
     "RepackagerBlockEntityMixin",
     "ShapedRecipePatternAccess",
-    "StockTickerBlockMixin"
+    "StockTickerBlockMixin",
+    "TableClothBlockMixin"
   ],
   "client": [
     "client.FactoryPanelModelMixin",
