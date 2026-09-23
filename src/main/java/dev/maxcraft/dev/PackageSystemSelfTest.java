@@ -69,6 +69,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootParams;
@@ -185,6 +186,9 @@ public final class PackageSystemSelfTest {
 
         // 16. The same, at the size the mod exists for: a full 30x30 array.
         crafterMatrix();
+
+        // 17. The row fill through a real click: whole rows only, and paid for out of the inventory.
+        crafterRowFillPays();
     }
 
     /**
@@ -485,8 +489,7 @@ public final class PackageSystemSelfTest {
         check("a lone crafter underneath does not fill anything",
             CrafterRowFill.fillRow(level, corner.offset(4, 1, 0), crafter, player) == 0);
 
-        // The last crafter in the hand belongs to the block being placed, never to the fill: it is what the game
-        // itself takes for the placement, and spending it here would make that placement free.
+        // The fill takes exactly what the row costs, out of the hand first and then out of the rest of the pack.
         for (int x = 0; x <= 2; x++)
             level.setBlockAndUpdate(corner.offset(x, 1, 0), Blocks.AIR.defaultBlockState());
         ItemStack spare = new ItemStack(AllBlocks.MECHANICAL_CRAFTER.asItem(), 4);
@@ -494,15 +497,78 @@ public final class PackageSystemSelfTest {
         player.getInventory()
             .setItem(10, spare);
         level.setBlockAndUpdate(above, crafter);
-        check("the last crafter in the hand is kept for the block being placed",
+        check("the fill takes exactly what the row costs, hand first",
             CrafterRowFill.fillRow(level, above, crafter, player) == 2
                 && player.getMainHandItem()
-                    .getCount() == 1
-                && spare.getCount() == 2);
+                    .isEmpty()
+                && spare.getCount() == 3);
         player.getInventory()
             .setItem(10, ItemStack.EMPTY);
 
         player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+    }
+
+    /**
+     * The row fill as the game runs it: use the item on the top of a row, event and placement and inventory and all.
+     * A row the player cannot pay for whole is left alone, and a row that is paid for costs exactly what it looks
+     * like it costs - one crafter per block, the block being placed included.
+     */
+    private static void crafterRowFillPays() {
+        ServerLevel level = serverLevel;
+        if (level == null) {
+            check("a server level is available for the row payment test", false);
+            return;
+        }
+
+        BlockState crafter = AllBlocks.MECHANICAL_CRAFTER.get()
+            .defaultBlockState();
+        BlockPos corner = new BlockPos(16, 100, 10);
+        for (int x = 0; x <= 2; x++) {
+            level.setBlockAndUpdate(corner.offset(x, 0, 0), crafter);
+            level.setBlockAndUpdate(corner.offset(x, 1, 0), Blocks.AIR.defaultBlockState());
+        }
+
+        FakePlayer player = FakePlayerFactory.getMinecraft(level);
+        player.getAbilities().instabuild = false;
+        BlockPos top = corner.offset(1, 0, 0);
+
+        // Two crafters for a row of three: the block being placed lands, and the rest of the row is not started.
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(AllBlocks.MECHANICAL_CRAFTER.asItem(), 2));
+        useOnTop(player, top);
+        CrafterRowFill.flushPending();
+        check("a row that cannot be paid for is not started",
+            player.getMainHandItem()
+                .getCount() == 1
+                && isCrafter(level, corner.offset(1, 1, 0))
+                && !isCrafter(level, corner.offset(0, 1, 0))
+                && !isCrafter(level, corner.offset(2, 1, 0)));
+
+        // The same row again with enough to pay for it: three crafters, three blocks, an empty hand.
+        for (int x = 0; x <= 2; x++)
+            level.setBlockAndUpdate(corner.offset(x, 1, 0), Blocks.AIR.defaultBlockState());
+        player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(AllBlocks.MECHANICAL_CRAFTER.asItem(), 3));
+        useOnTop(player, top);
+        CrafterRowFill.flushPending();
+        ItemStack left = player.getMainHandItem();
+        Maxcraft.LOGGER.info("SELFTEST: the paid row left {}{}{} in the world and {} crafters in the hand",
+            isCrafter(level, corner.offset(0, 1, 0)) ? "X" : ".",
+            isCrafter(level, corner.offset(1, 1, 0)) ? "X" : ".",
+            isCrafter(level, corner.offset(2, 1, 0)) ? "X" : ".",
+            left.getCount());
+        check("a row that can be paid for lands whole",
+            isCrafter(level, corner.offset(0, 1, 0))
+                && isCrafter(level, corner.offset(1, 1, 0))
+                && isCrafter(level, corner.offset(2, 1, 0)));
+        check("... and costs one crafter per block", left.isEmpty());
+
+        player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+    }
+
+    /** Uses the item in hand on the top face of a block, the way a player's click does. */
+    private static void useOnTop(FakePlayer player, BlockPos pos) {
+        player.getMainHandItem()
+            .useOn(new UseOnContext(player, InteractionHand.MAIN_HAND,
+                new BlockHitResult(Vec3.atCenterOf(pos), Direction.UP, pos, false)));
     }
 
     private static boolean isCrafter(ServerLevel level, BlockPos pos) {

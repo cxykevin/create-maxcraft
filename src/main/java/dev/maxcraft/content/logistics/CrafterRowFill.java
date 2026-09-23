@@ -1,8 +1,12 @@
 package dev.maxcraft.content.logistics;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.kinetics.crafter.MechanicalCrafterBlock;
@@ -23,6 +27,7 @@ import net.minecraft.world.level.gameevent.GameEvent;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 /**
  * Lays a whole row of Mechanical Crafters together with the one placed on top of a finished row.
@@ -32,20 +37,31 @@ import net.neoforged.neoforge.event.level.BlockEvent;
  * above any column of a finished row, and the rest of that row lands with it, so a row costs one click.
  *
  * <p>Only the row directly below is read, and it has to be a straight unbroken run of crafters along one horizontal
- * axis; a lone crafter is not a row yet. Anything already standing where the row would go is left alone, and every
- * crafter placed is paid for out of the player's inventory - a player who runs out gets as many as they can afford.
- * Sneaking places the single block and nothing else, and the whole behaviour can be turned off in the server config.
+ * axis; a lone crafter is not a row yet. Anything already standing where the row would go is left alone. A row is
+ * placed whole or not at all: if the player is not carrying enough crafters for the whole row it is not started,
+ * and every crafter placed is paid for out of their inventory. Sneaking places the single block and nothing else,
+ * and the whole behaviour can be turned off in the server config.
  */
 @EventBusSubscriber(modid = Maxcraft.MOD_ID)
 public final class CrafterRowFill {
 
+    /**
+     * The rows a placement asked for, filled at the end of the tick instead of during the placement itself.
+     *
+     * <p>The block that asks for a row is paid for by the game itself, out of the hand, and the game does that with
+     * a copy of the stack taken <em>before</em> the placement event fires. Anything this mod takes out of that hand
+     * while the event runs is written over again when the copy goes back, which is how a free row looked. By the end
+     * of the tick the copy is in place, so the crafters a row costs can be taken for real.
+     */
+    private static final List<Pending> PENDING = new ArrayList<>();
+
     private CrafterRowFill() {
     }
 
-    /**
-     * Runs while the crafter is not in the world yet - the event is the last chance to refuse the placement - which
-     * is why the row is read from the block below and the placement being made is skipped by position.
-     */
+    /** A placement that asked for a row, waiting for the end of the tick. */
+    private record Pending(ServerLevel level, BlockPos pos, BlockState state, ServerPlayer player) {
+    }
+
     @SubscribeEvent
     public static void onPlaced(BlockEvent.EntityPlaceEvent event) {
         if (!MaxcraftConfig.autoFillCrafterRows())
@@ -58,11 +74,33 @@ public final class CrafterRowFill {
             .getBlock() instanceof MechanicalCrafterBlock))
             return;
 
-        fillRow(level, event.getPos(), event.getPlacedBlock(), player);
+        PENDING.add(new Pending(level, event.getPos(), event.getPlacedBlock(), player));
+    }
+
+    /** Fills the rows the placements of this tick asked for. */
+    @SubscribeEvent
+    public static void onServerTick(ServerTickEvent.Post event) {
+        flushPending();
+    }
+
+    /** Fills every row waiting to be paid for. The tick calls this; the self test calls it by hand. */
+    public static void flushPending() {
+        if (PENDING.isEmpty())
+            return;
+
+        List<Pending> due = List.copyOf(PENDING);
+        PENDING.clear();
+        for (Pending pending : due)
+            if (!pending.player()
+                .hasDisconnected())
+                fillRow(pending.level(), pending.pos(), pending.state(), pending.player());
     }
 
     /**
      * Places the rest of a crafter row above {@code pos}, mirroring the row of crafters underneath it.
+     *
+     * <p>Called once the block that asked for the row is in the world and has been paid for, so a row of n blocks
+     * costs the player the n-1 crafters taken here plus the one the game took for the block itself.
      *
      * @return how many crafters were placed
      */
@@ -71,19 +109,27 @@ public final class CrafterRowFill {
         if (row.size() < 2)
             return 0;
 
-        int placed = 0;
+        List<BlockPos> targets = new ArrayList<>();
         for (BlockPos column : row) {
             BlockPos target = new BlockPos(column.getX(), pos.getY(), column.getZ());
-            if (target.equals(pos) || !level.getBlockState(target)
+            if (!target.equals(pos) && level.getBlockState(target)
                 .canBeReplaced())
-                continue;
+                targets.add(target);
+        }
+        if (targets.isEmpty())
+            return 0;
+
+        // A row is placed whole or not at all: a row the player cannot pay for is better left alone than started.
+        if (!player.getAbilities().instabuild && craftersCarried(player) < targets.size())
+            return 0;
+
+        for (BlockPos target : targets) {
+            // Cannot run out - the row was counted before it was started - but never place for free.
             if (!takeCrafter(player))
                 break;
-
             place(level, target, state, player);
-            placed++;
         }
-        return placed;
+        return targets.size();
     }
 
     /** The unbroken run of crafters through this position, along whichever horizontal axis is the longer one. */
@@ -116,24 +162,31 @@ public final class CrafterRowFill {
         return AllBlocks.MECHANICAL_CRAFTER.has(level.getBlockState(pos));
     }
 
-    /** One crafter out of the player's inventory, the hand that placed the first one going first. */
+    /** How many crafters the player is carrying, the hand they are holding included. */
+    private static int craftersCarried(ServerPlayer player) {
+        int carried = 0;
+        Inventory inventory = player.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            ItemStack stack = inventory.getItem(slot);
+            if (isCrafter(stack))
+                carried += stack.getCount();
+        }
+        return carried;
+    }
+
+    /** One crafter out of the player's inventory, the hand they are holding going first. */
     private static boolean takeCrafter(ServerPlayer player) {
         if (player.getAbilities().instabuild)
             return true;
 
-        // The block being placed is paid for by the game itself, out of the hand, after this runs - so the last
-        // crafter in that hand is left alone. Spending it here would make the placement free, because shrinking an
-        // empty stack does nothing.
-        Inventory inventory = player.getInventory();
         ItemStack held = player.getMainHandItem();
-        if (isCrafter(held) && held.getCount() > 1) {
+        if (isCrafter(held)) {
             held.shrink(1);
             return true;
         }
 
+        Inventory inventory = player.getInventory();
         for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
-            if (slot == inventory.selected)
-                continue;
             ItemStack stack = inventory.getItem(slot);
             if (isCrafter(stack)) {
                 stack.shrink(1);
